@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Cabinet - Card UI</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600&family=Kanit:wght@300;400;500&family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --accent-orange: #ff9f43;
+            --accent-green: #2ecc71;
+            --text-main: #2f3542;
+            --accent-pink: #f78fb3;
+            --accent-purple: #9b59b6;
+            --accent-blue: #74b9ff;
+        }
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: linear-gradient(-45deg, #a1c4fd, #c2e9fb, #fbc2eb, #f6d365);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* film grain layer */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .header-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 600;
+            font-style: italic;
+            color: #2c3e50;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        /* แถบด้านบน: badge + ปุ่มจัดการรายชื่อยา ให้อยู่ระดับเดียวกัน */
+        .top-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .creator-badge {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            background: rgba(255,255,255,0.4);
+            padding: 7px 18px;
+            border-radius: 999px;
+            color: #444;
+            display: flex;
+            align-items: center;
+            height: 40px;
+            backdrop-filter: blur(5px);
+        }
+
+        .medicine-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.8);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .medicine-card:hover {
+            transform: translateY(-4px); 
+            background: #fff;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            border-color: #fff;
+            transition: 0.3s;
+        }
+
+        .slot-indicator {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 4rem;
+            font-weight: bold;
+            font-style: italic;
+            color: rgba(0,0,0,0.03);
+            position: absolute;
+            right: 10px;
+            bottom: -15px;
+            line-height: 1;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .slot-badge-label {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: #2f3640;
+            color: #fff;
+            padding: 5px 15px 5px 20px;
+            border-bottom-right-radius: 15px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 2;
+        }
+
+        .card-content {
+            z-index: 1;
+            padding-left: 10px;
+            padding-top: 15px;
+        }
+
+        .med-name {
+            font-family: 'Kanit', sans-serif;
+            font-weight: 500;
+            font-size: 1.35rem;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+
+        .med-detail {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        .btn-fab {
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: #f1f2f6;
+            color: #2f3542;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.2s;
+            cursor: pointer;
+            z-index: 2;
+            margin-left: 15px;
+        }
+
+        .btn-fab:hover {
+            background: var(--accent-orange);
+            color: #fff;
+            box-shadow: 0 5px 15px rgba(255, 159, 67, 0.6);
+        }
+
+        .btn-fab-add {
+            background: #e8f5e9;
+            color: var(--accent-green);
+        }
+
+        .btn-fab-add:hover {
+            background: var(--accent-green);
+            color: #fff;
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.5);
+        }
+
+        .footer-credit {
+            margin-top: 40px;
+            font-family: 'Cormorant Garamond', serif;
+            font-style: italic;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            opacity: 0.8;
+        }
+
+        /* ---------- GLAMOROUS MODALS & DROPDOWN ---------- */
+
+        .glam-modal {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            background: radial-gradient(circle at top left,
+                        rgba(255,255,255,0.95),
+                        rgba(255,255,255,0.75));
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255,255,255,0.7);
+            box-shadow:
+                0 18px 40px rgba(0,0,0,0.18),
+                0 0 0 1px rgba(255,255,255,0.4);
+        }
+
+        .glam-modal::before {
+            content: "";
+            position: absolute;
+            inset: -40%;
+            background: conic-gradient(
+                from 180deg,
+                rgba(255, 159, 67, 0.4),
+                rgba(116, 185, 255, 0.4),
+                rgba(247, 143, 179, 0.5),
+                rgba(155, 89, 182, 0.45),
+                rgba(255, 159, 67, 0.4)
+            );
+            opacity: 0.35;
+            mix-blend-mode: screen;
+            animation: glamGlow 12s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes glamGlow {
+            0% { transform: translate3d(-10%, -10%, 0) rotate(0deg); }
+            50% { transform: translate3d(10%, 0, 0) rotate(180deg); }
+            100% { transform: translate3d(-10%, 10%, 0) rotate(360deg); }
+        }
+
+        .glam-modal-body,
+        .glam-modal-header,
+        .glam-modal-footer {
+            position: relative;
+            z-index: 1;
+        }
+
+        .glam-modal-header {
+            border-bottom: none;
+        }
+
+        .glam-modal-footer {
+            border-top: none;
+        }
+
+        .glam-modal-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.4rem;
+            font-style: italic;
+            letter-spacing: 0.06em;
+            color: #2d3436;
+        }
+
+        .btn-close {
+            box-shadow: none !important;
+        }
+
+        .btn-glam-primary {
+            border-radius: 999px;
+            padding-inline: 26px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 500;
+            border: none;
+            background: linear-gradient(120deg, var(--accent-pink), var(--accent-orange));
+            box-shadow: 0 8px 20px rgba(244, 127, 89, 0.55);
+            color: #fff;
+        }
+
+        .btn-glam-primary:hover {
+            filter: brightness(1.05);
+            box-shadow: 0 10px 26px rgba(244, 127, 89, 0.75);
+        }
+
+        .btn-glam-secondary {
+            border-radius: 999px;
+            padding-inline: 22px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 500;
+            border: 1px solid rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.6);
+            backdrop-filter: blur(8px);
+        }
+
+        .glam-select {
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.9);
+            background: linear-gradient(145deg,
+                rgba(255,255,255,0.95),
+                rgba(255,255,255,0.8)
+            );
+            box-shadow:
+                0 8px 18px rgba(0,0,0,0.08),
+                0 0 0 1px rgba(255,255,255,0.7);
+            font-family: 'Kanit', sans-serif;
+            font-size: 0.95rem;
+            padding: 12px 16px;
+        }
+
+        .glam-select:focus {
+            outline: none;
+            border-color: rgba(246, 185, 59, 0.9);
+            box-shadow:
+                0 0 0 1px rgba(246, 185, 59, 0.9),
+                0 0 18px rgba(246, 185, 59, 0.6);
+        }
+
+        .btn-manage-list {
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.85);
+            background: rgba(255,255,255,0.35);
+            backdrop-filter: blur(8px);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            height: 40px;
+            padding: 7px 16px;
+        }
+
+        .btn-manage-list i {
+            font-size: 0.8rem;
+        }
+
+        .btn-manage-list:hover {
+            background: rgba(255,255,255,0.6);
+        }
+
+        #medListManager .list-group-item {
+            background: rgba(255,255,255,0.85);
+            border: none;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        #medListManager .btn-outline-danger {
+            border-radius: 999px;
+            border-width: 1px;
+            padding-inline: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="text-center mb-3 mt-4">
+        <h1 class="header-title display-3">Smart Cabinet</h1>
+
+        <!-- แถบบน: Badge + ปุ่มจัดการ อยู่ระดับเดียวกัน -->
+        <div class="top-bar">
+            <div class="creator-badge">
+                DESIGNED BY <span style="color: #d35400; font-weight: 700; margin-left: 6px;">KMUTNB TEAM</span>
+            </div>
+
+            <button class="btn btn-sm btn-manage-list" onclick="openManageMedList()">
+                <i class="fas fa-list-ul me-1"></i> จัดการรายชื่อยา
+            </button>
+        </div>
+    </div>
+
+    <div class="container" style="max-width: 900px;">
+        <div class="row g-4">
+            
+            <div class="col-md-6">
+                <div class="medicine-card" id="card-1">
+                    <div class="slot-badge-label">SLOT 01</div>
+                    <div class="slot-indicator">01</div> 
+                    <div class="card-content">
+                        <div class="med-name">Paracetamol</div>
+                        <div class="med-detail">
+                            <i class="far fa-clock me-1"></i> 10:30 AM <br>
+                            <span class="text-success small">● Ready to dispense</span>
+                        </div>
+                    </div>
+                    <button class="btn-fab" onclick="editMedicine(1)">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="medicine-card" id="card-2">
+                    <div class="slot-badge-label">SLOT 02</div>
+                    <div class="slot-indicator">02</div>
+
+                    <div class="card-content">
+                        <div class="med-name">Amoxicillin</div>
+                        <div class="med-detail">
+                            <i class="far fa-clock me-1"></i> 11:15 AM <br>
+                            <span class="text-success small">● Ready to dispense</span>
+                        </div>
+                    </div>
+                    <button class="btn-fab" onclick="editMedicine(2)">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="medicine-card" id="card-3" style="border-style: dashed; background: rgba(255,255,255,0.4);">
+                    <div class="slot-badge-label" style="background: #95a5a6;">SLOT 03</div>
+                    <div class="slot-indicator">03</div>
+
+                    <div class="card-content">
+                        <div class="med-name" style="color: #95a5a6; font-style: italic;">Empty Slot</div>
+                        <div class="med-detail">Available for new item</div>
+                    </div>
+                    <button class="btn-fab btn-fab-add" onclick="editMedicine(3)">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="medicine-card" id="card-4" style="border-style: dashed; background: rgba(255,255,255,0.4);">
+                    <div class="slot-badge-label" style="background: #95a5a6;">SLOT 04</div>
+                    <div class="slot-indicator">04</div>
+
+                    <div class="card-content">
+                        <div class="med-name" style="color: #95a5a6; font-style: italic;">Empty Slot</div>
+                        <div class="med-detail">Available for new item</div>
+                    </div>
+                    <button class="btn-fab btn-fab-add" onclick="editMedicine(4)">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="footer-credit text-center">
+         Engineering Project • Crafted with Passion
+    </div>
+
+    <!-- Modal เลือกชื่อยา -->
+    <div class="modal fade" id="selectMedModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content glam-modal">
+          <div class="modal-header glam-modal-header">
+            <h5 class="modal-title glam-modal-title">เลือกชื่อยา</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body glam-modal-body">
+            <label class="form-label mb-2" style="font-family: 'Outfit', sans-serif; font-size: 0.8rem; letter-spacing: .15em; text-transform: uppercase;">
+                Select from list
+            </label>
+            <select id="medList" class="form-select glam-select">
+              <!-- ตัวเลือกจะถูกเติมโดย JavaScript -->
+            </select>
+          </div>
+          <div class="modal-footer glam-modal-footer">
+            <button class="btn btn-glam-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+
+            <!-- ปุ่มสแกน QR / Barcode -->
+            <button class="btn btn-outline-secondary rounded-pill" type="button" onclick="openScanModal()">
+                <i class="fas fa-barcode me-1"></i> สแกน QR / Barcode
+            </button>
+
+            <button class="btn btn-glam-primary" onclick="applySelectedMed()">บันทึก</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal จัดการรายชื่อยา -->
+    <div class="modal fade" id="manageMedModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content glam-modal">
+          <div class="modal-header glam-modal-header">
+            <h5 class="modal-title glam-modal-title">จัดการรายชื่อยา</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body glam-modal-body">
+            <div class="mb-3">
+              <label class="form-label" style="font-size: 0.9rem;">เพิ่มชื่อยาใหม่</label>
+              <div class="input-group">
+                <input type="text" id="newMedName" class="form-control" placeholder="เช่น Paracetamol 500 mg">
+                <button class="btn btn-glam-primary" type="button" onclick="addMedicineFromInput()">เพิ่ม</button>
+              </div>
+            </div>
+
+            <hr>
+
+            <label class="form-label" style="font-size: 0.9rem;">รายการยาทั้งหมด</label>
+            <ul id="medListManager" class="list-group">
+              <!-- รายการจะถูกเติมโดย JavaScript -->
+            </ul>
+          </div>
+
+          <div class="modal-footer glam-modal-footer">
+            <button class="btn btn-glam-secondary" data-bs-dismiss="modal">ปิด</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal สแกน QR / Barcode -->
+    <div class="modal fade" id="scanModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glam-modal">
+          <div class="modal-header glam-modal-header">
+            <h5 class="modal-title glam-modal-title">สแกน QR / Barcode</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="stopScan()"></button>
+          </div>
+          <div class="modal-body glam-modal-body">
+            <p class="small text-muted mb-2">
+                เล็งกล้องไปที่ QR หรือ Barcode บนกล่องยา
+            </p>
+
+            <div id="qr-reader" style="width:100%; max-width:320px; margin:0 auto; border-radius:16px; overflow:hidden;"></div>
+            <div id="qr-result" class="mt-3 text-center small text-success"></div>
+          </div>
+          <div class="modal-footer glam-modal-footer">
+            <button class="btn btn-glam-secondary" type="button" onclick="stopScan()" data-bs-dismiss="modal">
+                ปิด
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- ไลบรารีสำหรับสแกน QR/Barcode -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <script>
+        let currentSlot = null;
+
+        const defaultMeds = [
+            "Paracetamol",
+            "Ibuprofen",
+            "Amoxicillin",
+            "Cetirizine",
+            "Vitamin C"
+        ];
+
+        let medList = [];
+
+        function loadMedList() {
+            const saved = localStorage.getItem('medList');
+            if (saved) {
+                try {
+                    medList = JSON.parse(saved);
+                } catch (e) {
+                    medList = [...defaultMeds];
+                }
+            } else {
+                medList = [...defaultMeds];
+            }
+        }
+
+        function saveMedList() {
+            localStorage.setItem('medList', JSON.stringify(medList));
+        }
+
+        function renderMedOptions() {
+            const select = document.getElementById("medList");
+            if (!select) return;
+            select.innerHTML = "";
+
+            medList.forEach(name => {
+                const opt = document.createElement("option");
+                opt.value = name;
+                opt.textContent = name;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderMedManager() {
+            const ul = document.getElementById("medListManager");
+            if (!ul) return;
+
+            ul.innerHTML = "";
+
+            medList.forEach((name, index) => {
+                const li = document.createElement("li");
+                li.className = "list-group-item d-flex justify-content-between align-items-center";
+                li.innerHTML = `
+                    <span>${name}</span>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMedicine(${index})">
+                        ลบ
+                    </button>
+                `;
+                ul.appendChild(li);
+            });
+        }
+
+        function editMedicine(slot) {
+            currentSlot = slot;
+            const modal = new bootstrap.Modal(document.getElementById('selectMedModal'));
+            modal.show();
+        }
+
+        function applySelectedMed() {
+            const name = document.getElementById("medList").value;
+            const card = document.getElementById("card-" + currentSlot);
+
+            const nameEl = card.querySelector(".med-name");
+            nameEl.textContent = name;
+            nameEl.style.color = "#2f3542";
+            nameEl.style.fontStyle = "normal";
+
+            card.style.borderStyle = "solid";
+            card.style.background = "var(--card-bg)";
+
+            const badge = card.querySelector('.slot-badge-label');
+            if (badge) badge.style.background = "#2f3640";
+
+            bootstrap.Modal.getInstance(document.getElementById('selectMedModal')).hide();
+        }
+
+        function openManageMedList() {
+            renderMedManager();
+            const modal = new bootstrap.Modal(document.getElementById('manageMedModal'));
+            modal.show();
+        }
+
+        function addMedicineFromInput() {
+            const input = document.getElementById("newMedName");
+            const name = input.value.trim();
+            if (!name) return;
+
+            if (!medList.includes(name)) {
+                medList.push(name);
+                saveMedList();
+                renderMedOptions();
+                renderMedManager();
+            }
+            input.value = "";
+        }
+
+        function deleteMedicine(index) {
+            medList.splice(index, 1);
+            saveMedList();
+            renderMedOptions();
+            renderMedManager();
+        }
+
+        // ---------- ส่วนสแกน QR / Barcode ----------
+
+        let html5QrCode = null;
+        let scanning = false;
+
+        function openScanModal() {
+            const scanModalEl = document.getElementById('scanModal');
+            const modal = new bootstrap.Modal(scanModalEl);
+            modal.show();
+
+            setTimeout(() => {
+                startScan();
+            }, 300);
+        }
+
+        function startScan() {
+            if (scanning) return;
+
+            const qrRegionId = "qr-reader";
+            html5QrCode = new Html5Qrcode(qrRegionId);
+
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            };
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                (decodedText, decodedResult) => {
+                    onScanSuccess(decodedText);
+                },
+                (errorMessage) => {
+                    // ignore error
+                }
+            ).then(() => {
+                scanning = true;
+                document.getElementById("qr-result").innerText = "กำลังสแกน...";
+            }).catch(err => {
+                document.getElementById("qr-result").innerText = "ไม่สามารถเปิดกล้องได้: " + err;
+            });
+        }
+
+        function stopScan() {
+            if (html5QrCode && scanning) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                    scanning = false;
+                }).catch(err => {
+                    console.error("หยุดสแกนไม่ได้:", err);
+                });
+            }
+        }
+
+        function onScanSuccess(decodedText) {
+            document.getElementById("qr-result").innerText = "สแกนสำเร็จ: " + decodedText;
+
+            if (!medList.includes(decodedText)) {
+                medList.push(decodedText);
+                saveMedList();
+                renderMedOptions();
+                renderMedManager();
+            }
+
+            if (currentSlot !== null) {
+                const card = document.getElementById("card-" + currentSlot);
+                if (card) {
+                    const nameEl = card.querySelector(".med-name");
+                    if (nameEl) {
+                        nameEl.textContent = decodedText;
+                        nameEl.style.color = "#2f3542";
+                        nameEl.style.fontStyle = "normal";
+
+                        card.style.borderStyle = "solid";
+                        card.style.background = "var(--card-bg)";
+
+                        const badge = card.querySelector('.slot-badge-label');
+                        if (badge) badge.style.background = "#2f3640";
+                    }
+                }
+            }
+
+            stopScan();
+            const scanModalEl = document.getElementById('scanModal');
+            const scanModal = bootstrap.Modal.getInstance(scanModalEl);
+            if (scanModal) scanModal.hide();
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadMedList();
+            renderMedOptions();
+        });
+    </script>
+
+</body>
+</html>
