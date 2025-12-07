@@ -13,7 +13,7 @@
         rel="stylesheet">
 
     <style>
-        /* (Style เดิมของคุณทั้งหมด คงไว้เหมือนเดิม) */
+        /* CSS คงเดิม */
         :root {
             --card-bg: rgba(255, 255, 255, 0.95);
             --accent-orange: #ff9f43;
@@ -333,7 +333,7 @@
             <div class="creator-badge">DESIGNED BY <span
                     style="color: #d35400; font-weight: 700; margin-left: 6px;">KMUTNB TEAM</span></div>
             <button class="btn btn-sm btn-manage-list" onclick="openManageMedList()">
-                <i class="fas fa-list-ul me-1"></i> จัดการรายชื่อยา
+                <i class="fas fa-list-ul me-1"></i> รายชื่อยาที่สแกน
             </button>
             <button class="btn btn-sm btn-manage-list btn-logout ms-2" onclick="logout()">
                 <i class="fas fa-sign-out-alt me-1"></i> ออกจากระบบ
@@ -377,15 +377,15 @@
         <div class="modal-dialog">
             <div class="modal-content glam-modal">
                 <div class="modal-header" style="border-bottom:none;">
-                    <h5 class="modal-title glam-modal-title">จัดการรายชื่อยา</h5>
+                    <h5 class="modal-title glam-modal-title text-center">รายการยาทั้งหมด</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <label class="form-label text-muted small">รายการยาทั้งหมด (Database)</label>
+           
                     <hr class="mt-1 mb-2">
                     <div style="max-height: 350px; overflow-y: auto;">
                         <ul id="medListManager" class="list-group" style="background:none;">
-                            <li class="list-group-item text-center text-muted">กำลังโหลดข้อมูล...</li>
+                            <li class="list-group-item text-center text-muted">รอการสแกน...</li>
                         </ul>
                     </div>
                 </div>
@@ -418,69 +418,92 @@
         const db = getDatabase(app);
         const auth = getAuth(app);
 
-        // 🔥 แก้ไขตรงนี้ครับ ให้ดีดกลับไป index.html (ซึ่งตอนนี้คือหน้า Login)
+        // Security
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 console.log("Logged in:", user.email);
                 loadSlotsFromFirebase();
                 loadMedListFromFirebase();
             } else {
-                window.location.href = "index.html";
+                window.location.href = "index.html"; 
             }
         });
 
-        // 🔥 แก้ไขตรงนี้ครับ ให้ดีดกลับไป index.html หลัง Logout
-        window.logout = function () {
-            signOut(auth).then(() => {
-                window.location.href = "index.html";
-            }).catch((error) => { alert("Logout Failed"); });
+        window.logout = function() {
+            signOut(auth).then(() => { window.location.href = "index.html"; }).catch((error) => { alert("Logout Failed"); });
         };
 
-        // --- Logic เดิม ---
-        let globalSlots = [];
+        let globalSlots = []; 
         let currentSlotIndex = null;
-        let medList = [];
-        const medListRef = ref(db, 'medicine_list');
+        
+        // --- Medicine List Logic ---
+        const medListRef = ref(db, 'drugs');
 
         function loadMedListFromFirebase() {
             onValue(medListRef, (snapshot) => {
                 const select = document.getElementById("medList");
                 const ul = document.getElementById("medListManager");
+                
                 select.innerHTML = "";
                 ul.innerHTML = "";
                 let hasData = false;
+
                 if (snapshot.exists()) {
                     hasData = true;
                     const data = snapshot.val();
-                    Object.entries(data).forEach(([key, name]) => {
-                        const opt = document.createElement("option"); opt.value = name; opt.textContent = name; select.appendChild(opt);
+                    Object.keys(data).forEach((key) => {
+                        const drugItem = data[key];
+                        const drugName = drugItem.name ? drugItem.name : key; 
+                        
+                        const opt = document.createElement("option");
+                        opt.value = drugName;
+                        opt.textContent = drugName;
+                        select.appendChild(opt);
+
                         const li = document.createElement("li");
                         li.className = "list-group-item d-flex justify-content-between align-items-center mb-2";
-                        li.style.background = "rgba(255,255,255,0.7)"; li.style.border = "none";
-                        li.innerHTML = `<span>${name}</span><button class="btn btn-sm btn-outline-danger" onclick="deleteMedicine('${key}')"><i class="fas fa-trash"></i></button>`;
+                        li.style.background = "rgba(255,255,255,0.7)";
+                        li.style.border = "none";
+                        li.innerHTML = `
+                            <span>${drugName}</span>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteMedicine('${key}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
                         ul.appendChild(li);
                     });
+                } 
+                if (!hasData) {
+                    ul.innerHTML = '<li class="list-group-item text-center text-muted">ไม่พบข้อมูลยา</li>';
                 }
-                if (!hasData) { ul.innerHTML = '<li class="list-group-item text-center text-muted">ไม่พบข้อมูล (กำลังสร้างค่าเริ่มต้น...)</li>'; seedDefaults(); }
             });
         }
 
-        window.deleteMedicine = function (key) { if (confirm("ยืนยันการลบรายชื่อยานี้?")) { remove(ref(db, 'medicine_list/' + key)); } };
-        function seedDefaults() { const defaultMeds = ["Paracetamol", "Ibuprofen", "Amoxicillin", "Cetirizine", "Vitamin C"]; get(medListRef).then((snapshot) => { if (!snapshot.exists()) { defaultMeds.forEach(med => { push(medListRef, med); }); } }); }
-        window.openManageMedList = function () { new bootstrap.Modal(document.getElementById('manageMedModal')).show(); };
+        window.deleteMedicine = function(key) {
+            if(confirm("ต้องการลบยา '" + key + "' ออกจากฐานข้อมูลหรือไม่?")) {
+                remove(ref(db, 'drugs/' + key)).catch((error) => { alert("ลบไม่สำเร็จ: " + error.message); });
+            }
+        };
 
+        window.openManageMedList = function() {
+            new bootstrap.Modal(document.getElementById('manageMedModal')).show();
+        };
+
+        // --- Slot Logic ---
         function loadSlotsFromFirebase() {
             const slotsRef = ref(db, "slots");
             onValue(slotsRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
-                    if (Array.isArray(data)) { globalSlots = data; } else { globalSlots = Object.values(data); }
+                    if (Array.isArray(data)) {
+                        globalSlots = data.filter(x => x !== null);
+                    } else {
+                        globalSlots = Object.values(data);
+                    }
                 } else {
                     globalSlots = [];
-                    for (let i = 1; i <= 4; i++) { globalSlots.push({ slot: i, name: "Empty Slot", detail: "Available for new item" }); }
-                    saveToFirebase();
                 }
-                if (!globalSlots) globalSlots = [];
+                if(!globalSlots) globalSlots = [];
                 renderSlots();
             });
         }
@@ -488,24 +511,105 @@
         function renderSlots() {
             const container = document.getElementById("slotContainer");
             container.innerHTML = "";
+
             globalSlots.forEach((s, index) => {
-                if (!s) return;
                 const filled = s.name !== "Empty Slot";
-                const displayNum = String(index + 1).padStart(2, '0');
+                const displayNum = String(index + 1).padStart(2,'0');
                 s.slot = index + 1;
-                const cardHTML = `<div class="col-md-6"><div class="medicine-card" id="card-${index}" style="${filled ? "" : "border-style:dashed;background:rgba(255,255,255,0.4);"}"><div class="btn-fab-delete" onclick="deleteSpecificSlot(${index})" title="ลบ Slot นี้"><i class="fas fa-trash"></i></div><div class="slot-badge-label" style="${filled ? "" : "background:#95a5a6;"}">SLOT ${displayNum}</div><div class="slot-indicator">${displayNum}</div><div class="card-content"><div class="med-name" style="${filled ? "" : "color:#95a5a6;font-style:italic;"}">${s.name}</div><div class="med-detail">${s.detail}</div></div><button class="btn-fab ${filled ? "" : "btn-fab-add"}" onclick="editMedicine(${index})"><i class="fas ${filled ? "fa-pen" : "fa-plus"}"></i></button></div></div>`;
+
+                // 🔥 แสดงเวลาที่เพิ่ม (ถ้ามี)
+                const createdTime = s.createdAt ? `<br><small class="text-muted" style="font-size:0.75rem"><i class="far fa-clock me-1"></i>Added: ${s.createdAt}</small>` : '';
+
+                const cardHTML = `
+                    <div class="col-md-6">
+                        <div class="medicine-card" id="card-${index}" 
+                            style="${filled ? "" : "border-style:dashed;background:rgba(255,255,255,0.4);"}" >
+                            
+                            <div class="btn-fab-delete" onclick="deleteSpecificSlot(${index})" title="ลบ Slot นี้">
+                                <i class="fas fa-trash"></i>
+                            </div>
+
+                            <div class="slot-badge-label" style="${filled ? "" : "background:#95a5a6;"}">
+                                SLOT ${displayNum}
+                            </div>
+
+                            <div class="slot-indicator">${displayNum}</div>
+
+                            <div class="card-content">
+                                <div class="med-name" style="${filled ? "" : "color:#95a5a6;font-style:italic;"}">
+                                    ${s.name}
+                                </div>
+                                <div class="med-detail">
+                                    ${s.detail}
+                                    ${createdTime} </div>
+                            </div>
+
+                            <button class="btn-fab ${filled ? "" : "btn-fab-add"}" onclick="editMedicine(${index})">
+                                <i class="fas ${filled ? "fa-pen" : "fa-plus"}"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
                 container.insertAdjacentHTML('beforeend', cardHTML);
             });
         }
 
-        function saveToFirebase() { set(ref(db, "slots"), globalSlots).catch((error) => { alert("บันทึกไม่สำเร็จ! ตรวจสอบสิทธิ์ Database"); }); }
+        function saveToFirebase() {
+            set(ref(db, "slots"), globalSlots).catch((error) => { alert("บันทึกไม่สำเร็จ!"); });
+        }
 
-        window.addSlot = function () { if (!Array.isArray(globalSlots)) { globalSlots = []; } const nextNum = globalSlots.length + 1; globalSlots.push({ slot: nextNum, name: "Empty Slot", detail: "Available for new item" }); saveToFirebase(); };
-        window.removeLastSlot = function () { if (globalSlots && globalSlots.length > 0) { globalSlots.pop(); saveToFirebase(); } };
-        window.deleteSpecificSlot = function (index) { if (confirm("ต้องการลบ Slot นี้ใช่หรือไม่?")) { globalSlots.splice(index, 1); saveToFirebase(); } };
-        window.editMedicine = function (index) { currentSlotIndex = index; new bootstrap.Modal(document.getElementById('selectMedModal')).show(); };
-        window.applySelectedMed = function () { const name = document.getElementById("medList").value; if (globalSlots[currentSlotIndex]) { globalSlots[currentSlotIndex].name = name; globalSlots[currentSlotIndex].detail = '<span class="text-success small">● Ready to dispense</span>'; saveToFirebase(); } bootstrap.Modal.getInstance(document.getElementById('selectMedModal')).hide(); };
+        // --- Button Actions ---
+        window.addSlot = function() {
+            if (!Array.isArray(globalSlots)) globalSlots = [];
+            const nextNum = globalSlots.length + 1;
+            
+            // 🔥 สร้างเวลาปัจจุบัน (เช่น "10:30:45")
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('th-TH'); // หรือ 'en-US' แล้วแต่ชอบ
+
+            globalSlots.push({ 
+                slot: nextNum, 
+                name: "Empty Slot", 
+                detail: "Available for new item",
+                createdAt: timeString // 🔥 บันทึกเวลาลงไป
+            });
+            saveToFirebase();
+        };
+
+        window.removeLastSlot = function() {
+            if (globalSlots && globalSlots.length > 0) {
+                globalSlots.pop(); 
+                saveToFirebase();
+            }
+        };
+
+        window.deleteSpecificSlot = function(index) {
+            if(confirm("ต้องการลบ Slot นี้ใช่หรือไม่?")) {
+                globalSlots.splice(index, 1);
+                saveToFirebase();
+            }
+        };
+
+        window.editMedicine = function(index) {
+            currentSlotIndex = index;
+            new bootstrap.Modal(document.getElementById('selectMedModal')).show();
+        };
+
+        window.applySelectedMed = function() {
+            const name = document.getElementById("medList").value;
+            if (globalSlots[currentSlotIndex]) {
+                globalSlots[currentSlotIndex].name = name;
+                globalSlots[currentSlotIndex].detail = '<span class="text-success small">● Ready to dispense</span>';
+                // (ถ้าอยากให้อัปเดตเวลาตอน "แก้ไข" ด้วย ให้ uncomment บรรทัดล่าง)
+                // globalSlots[currentSlotIndex].createdAt = new Date().toLocaleTimeString('th-TH');
+                
+                saveToFirebase();
+            }
+            bootstrap.Modal.getInstance(document.getElementById('selectMedModal')).hide();
+        };
+
     </script>
+
 </body>
 
 </html>
